@@ -1,0 +1,48 @@
+{
+	"schemaVersion": 1,
+	"id": "coldest-land",
+	"version": "${version}",
+	"name": "Coldest Land",
+	"description": "This is an example description! Tell everyone what your mod is about!",
+	"authors": [
+		"Me!"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/coldest-land/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			{
+				"value": "com.pycho.ColdestLand",
+				"adapter": "kotlin"
+			}
+		],
+		"client": [
+			{
+				"value": "com.pycho.ColdestLandClient",
+				"adapter": "kotlin"
+			}
+		]
+	},
+	"mixins": [
+		"coldest-land.mixins.json",
+		{
+			"config": "coldest-land.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.18.2",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*",
+		"fabric-language-kotlin": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}

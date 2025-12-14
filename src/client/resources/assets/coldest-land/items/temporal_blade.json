@@ -1,0 +1,6 @@
+{
+  "model":  {
+    "type": "minecraft:model",
+    "model": "coldest-land:item/temporal_blade"
+  }
+}
