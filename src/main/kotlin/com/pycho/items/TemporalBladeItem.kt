@@ -1,5 +1,6 @@
 package com.pycho.items
 
+import com.jcraft.jorbis.Block
 import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
@@ -9,9 +10,14 @@ import net.minecraft.sounds.SoundEvents
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.EntitySpawnReason
+import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.MobCategory
+import net.minecraft.world.entity.MoverType
 import net.minecraft.world.entity.Relative
+import net.minecraft.world.entity.boss.wither.WitherBoss
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
@@ -20,12 +26,15 @@ import net.minecraft.world.item.component.TooltipDisplay
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.entity.BeaconBlockEntity
 import net.minecraft.world.level.portal.TeleportTransition
+import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import java.util.function.Consumer
+import java.util.function.Predicate
 import kotlin.experimental.and
 import kotlin.experimental.or
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 class TemporalBladeItem(props: Item.Properties) : Item(props) {
 
@@ -153,7 +162,6 @@ class TemporalBladeItem(props: Item.Properties) : Item(props) {
         return super.hurtEnemy(stack, target, attacker)
     }
 
-
     fun handleComboInput(
         stack: ItemStack,
         level: Level,
@@ -280,6 +288,15 @@ class TemporalBladeItem(props: Item.Properties) : Item(props) {
         )
 
         val recallTarget = getRecallTarget(player as ServerPlayer) ?: return
+
+        if(isFragmentAquired(stack, WITHER_FRAGMENT)) {
+            enderAbilitySynergy(stack, level, player)
+            if(recallTarget.health > player.health){
+                player.heal((recallTarget.health-player.health)/2)
+                player.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f)
+            }
+        }
+
         player.moveOrInterpolateTo(Vec3(recallTarget.x, recallTarget.y, recallTarget.z))
         player.teleport(TeleportTransition(
             level as ServerLevel,
@@ -292,7 +309,44 @@ class TemporalBladeItem(props: Item.Properties) : Item(props) {
             emptySet<Relative>(),
             TeleportTransition.DO_NOTHING
         ))
-        player.heal(recallTarget.health/2)
+
+    }
+
+    private fun enderAbilitySynergy(stack: ItemStack, level: Level, player: Player) {
+        val entities = getEntitiesAround(level,player.position(), 7, {entity ->
+            (entity.type != EntityType.WITHER_SKULL) and
+                    (entity.type.category == MobCategory.MONSTER) or ((entity.type == EntityType.PLAYER) and (entity.name != player.name))})
+        entities.forEach { entity ->
+            val pos = BlockPos(
+                player.position().x.roundToInt(),
+                player.position().y.roundToInt()+1,
+                player.position().z.roundToInt()
+            )
+            val targetPos = entity.getEyePosition()
+
+            var directionVec = targetPos.subtract(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+            directionVec = directionVec.normalize()
+            val speed = Vec3(0.1,0.1,0.1)
+            directionVec = directionVec.multiply(speed)
+            player.displayClientMessage(Component.literal(entity.type.toString()),true)
+
+            val projectile = EntityType.WITHER_SKULL.spawn(level as ServerLevel, pos, EntitySpawnReason.EVENT)
+            projectile?.owner = player
+            projectile?.addDeltaMovement(directionVec)
+        }
+    }
+
+    fun getEntitiesAround(level: Level, center: Vec3, radius: Int, filter: Predicate<Entity>): MutableList<Entity> {
+        val boundingBox: AABB = AABB(
+            center.x - radius, center.y - radius, center.z - radius,
+            center.x + radius, center.y + radius, center.z + radius
+        )
+
+        var entities: MutableList<Entity> = level.getEntities(null,boundingBox, filter)
+
+        val radiusSq = radius * radius
+        entities.removeIf { entity: Entity -> entity.distanceToSqr(center) > radiusSq }
+        return entities
     }
 
     private fun activateAbility2(stack: ItemStack, level: Level, player: Player) {
@@ -371,7 +425,6 @@ class TemporalBladeItem(props: Item.Properties) : Item(props) {
                 history.addFirst(TemporalRecord(entity.position().x, entity.position().y, entity.position().z, entity.health))
                 if (history.size > 5) {
                     history.removeLast()
-                    entity.displayClientMessage(Component.literal("X: " + history[4].x + " Y: " + history[4].y + " Z: " + history[4].z),true)
                 }
 
                 if (isNearBeacon(level, entity.blockPosition())) {
@@ -453,6 +506,7 @@ class TemporalBladeItem(props: Item.Properties) : Item(props) {
         consumer.accept(Component.literal("Requires Beacon for Energy")
             .withStyle(ChatFormatting.DARK_AQUA))
     }
+
 
     override fun isBarVisible(stack: ItemStack): Boolean {
         return true

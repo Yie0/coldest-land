@@ -15,7 +15,7 @@ object ColdestLand : ModInitializer {
 	override fun onInitialize() {
 		logger.info("Hello Fabric world!")
         ModNetworking.registerGlobalReceivers()
-        val item = ModItems.TEMPORAL_BLADE
+        val item = ModItems.Fragments.ENDER
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
             DebugCommands.register(dispatcher)
         }
