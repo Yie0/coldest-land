@@ -32,6 +32,37 @@ object ModItems {
             .sword(ToolMaterial.NETHERITE, 7f, -2.4f),
         group = CreativeModeTabs.COMBAT
     )
+    object Fragments{
+        val ENDER: Item = registerItem(
+            name = "ender_fragment",
+            factory = ::TemporalFragmentItem,
+            properties = Item.Properties()
+                .rarity(Rarity.EPIC),
+            group = CreativeModeTabs.TOOLS_AND_UTILITIES
+        )
+        val GUARDIAN: Item = registerItem(
+            name = "guardian_fragment",
+            factory = ::TemporalFragmentItem,
+            properties = Item.Properties()
+                .rarity(Rarity.EPIC),
+            group = CreativeModeTabs.TOOLS_AND_UTILITIES
+        )
+        val WARDEN: Item = registerItem(
+            name = "warden_fragment",
+            factory = ::TemporalFragmentItem,
+            properties = Item.Properties()
+                .rarity(Rarity.EPIC),
+            group = CreativeModeTabs.TOOLS_AND_UTILITIES
+        )
+        val WITHER: Item = registerItem(
+            name = "wither_fragment",
+            factory = ::TemporalFragmentItem,
+            properties = Item.Properties()
+                .rarity(Rarity.EPIC),
+            group = CreativeModeTabs.TOOLS_AND_UTILITIES
+        )
+    }
+
     fun registerItem(name: String,factory: (Item.Properties) -> Item ,properties: Item.Properties, group: ResourceKey<CreativeModeTab>) : Item {
         val itemKey: ResourceKey<Item> = ResourceKey.create(Registries.ITEM, ColdestLand.id(name))
         val item: Item = Registry.register(BuiltInRegistries.ITEM, itemKey, factory(properties.setId(itemKey)))
