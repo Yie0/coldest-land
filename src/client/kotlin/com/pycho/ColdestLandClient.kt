@@ -1,5 +1,7 @@
 package com.pycho
 
+import com.mojang.authlib.minecraft.client.MinecraftClient
+import com.pycho.gui.AlertHud
 import com.pycho.items.ModItems
 import com.pycho.items.TemporalBladeItem
 import com.pycho.network.ComboInputPayload
@@ -7,7 +9,8 @@ import com.pycho.network.ModNetworking
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
-import net.minecraft.network.chat.Component
+import net.minecraft.client.Minecraft
+
 
 object ColdestLandClient : ClientModInitializer {
     override fun onInitializeClient() {
@@ -24,11 +27,10 @@ object ColdestLandClient : ClientModInitializer {
             }
 
         }
-        ClientPlayNetworking.registerGlobalReceiver(ModNetworking.ALERT_PLAYERS_PACKET_ID) { payload, context ->
-            context.player()?.displayClientMessage(
-                    Component.literal(payload.msg),
-                    true
-            )
+        AlertHud.register()
+
+        ClientPlayNetworking.registerGlobalReceiver(ModNetworking.ALERT_PACKET_ID) { payload, context ->
+            AlertHud.alerts.addLast(payload.alert)
         }
     }
 
