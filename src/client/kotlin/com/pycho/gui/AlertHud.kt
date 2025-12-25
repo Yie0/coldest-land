@@ -7,9 +7,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements
 import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
-import net.minecraft.network.chat.Component
 import net.minecraft.util.Util
-import net.minecraft.world.entity.player.Player
 
 object AlertHud{
     var alerts: MutableList<Alert> = mutableListOf()
@@ -20,13 +18,8 @@ object AlertHud{
         }
     }
     fun render(context: GuiGraphics, tickDelta: DeltaTracker) {
-        var posX = context.guiWidth() / 2
-        var posY = context.guiHeight() / 2
-
-
         val currentTime = Util.getMillis()
         val fadeDuration = 500
-
 
         alerts.removeIf { alert ->
             currentTime - alert.creationTime > alert.lifetime + fadeDuration
@@ -35,6 +28,11 @@ object AlertHud{
         for (alert in alerts) {
             val age = currentTime - alert.creationTime
 
+            context.pose().pushMatrix()
+            context.pose().scale(alert.scale.toFloat())
+
+            var posX = context.guiWidth() / alert.scale / 2
+            var posY = context.guiHeight() / alert.scale / 2
 
             val alpha = if (age <= alert.lifetime) {
                 1.0f
@@ -47,15 +45,19 @@ object AlertHud{
 
             val color = (alpha * 255).toInt() shl 24 or 0xFFFFFF
 
+            val font = Minecraft.getInstance().font
+
             context.drawCenteredString(
-                Minecraft.getInstance().font,
+                font,
                 alert.component,
-                posX,
-                posY,
+                posX.toInt(),
+                posY.toInt(),
                 color
             )
 
-            posY -= 20
+
+            posY -= 20 * alert.scale
+            context.pose().popMatrix()
         }
     }
 }

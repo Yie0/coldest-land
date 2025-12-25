@@ -67,6 +67,10 @@ data class AlertPayload(val alert: Alert) : CustomPacketPayload {
         }
     }
 
+    fun send(player: ServerPlayer) {
+        ServerPlayNetworking.send(player, AlertPayload(alert))
+    }
+
     companion object {
         val CODEC: StreamCodec<RegistryFriendlyByteBuf, AlertPayload> = StreamCodec.ofMember(
             { payload, buf -> write(buf, payload.alert)},
@@ -77,17 +81,20 @@ data class AlertPayload(val alert: Alert) : CustomPacketPayload {
             ComponentSerialization.STREAM_CODEC.encode(buf,alert.component)
             buf.writeInt(alert.lifetime)
             buf.writeLong(alert.creationTime)
+            buf.writeFloat(alert.scale)
         }
 
         fun read(buf: RegistryFriendlyByteBuf): Alert{
             val component = ComponentSerialization.STREAM_CODEC.decode(buf)
             val lifetime = buf.readInt()
             val creationTime = buf.readLong()
+            val scale = buf.readFloat()
 
             return Alert(
                 component = component,
                 lifetime = lifetime,
-                creationTime
+                creationTime = creationTime,
+                scale = scale,
             )
         }
     }
