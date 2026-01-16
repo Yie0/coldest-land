@@ -1,9 +1,11 @@
 package com.pycho.systems.barrier
 
-import com.pycho.network.AlertPayload
+import com.pycho.network.BarrierDataPayload
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
+import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.phys.AABB
 import java.util.*
 import kotlin.math.ceil
@@ -38,7 +40,7 @@ object BarrierManager {
         }
 
         fun removeBarrier(barrierId: UUID) {
-            val barrier = barriersById.remove(barrierId) ?: return
+            val barrier = barriersById[barrierId] ?: return
 
             val minChunkX = floor((barrier.centerX - barrier.radius) / 16).toInt()
             val maxChunkX = ceil((barrier.centerX + barrier.radius) / 16).toInt()
@@ -66,7 +68,7 @@ object BarrierManager {
                 for (chunkZ in minChunkZ..maxChunkZ) {
                     val chunkKey = SectionPos.asLong(chunkX, 0, chunkZ)
                     barriersByChunk[chunkKey]?.forEach { barrier ->
-                        if (barrier.boundingBox.intersects(area)) {
+                        if(barrier.boundingBoxes.any { it.intersects(area) }) {
                             result.add(barrier)
                         }
                     }
@@ -76,10 +78,14 @@ object BarrierManager {
             return result
         }
 
-        fun tick(currentTime: Long) {
-            val iterator = barriersById.iterator()
+        fun getBarriers(): List<BarrierData>{
+            return tempBarrierList.get()
+        }
+
+        fun tick(currentTime: Long, level: ServerLevel) {
+            val iterator = barriersById.values.iterator()
             while (iterator.hasNext()) {
-                val barrier = iterator.next().value
+                val barrier = iterator.next()
                 if (barrier.isExpired(currentTime)) {
                     removeBarrier(barrier.id)
                     iterator.remove()
@@ -90,6 +96,17 @@ object BarrierManager {
 
     fun addBarrier(level: ServerLevel, barrier: BarrierData) {
         barriersByWorld.getOrPut(level) { WorldBarrierData() }.addBarrier(barrier)
+        broadcastBarrier(level, barrier)
+    }
+
+    fun broadcastBarrier(level: ServerLevel, barrier: BarrierData) {
+        val payload = BarrierDataPayload(barrier)
+
+        val centerPos = BlockPos.containing(barrier.centerX, barrier.centerY, barrier.centerZ)
+        val chunkPos = ChunkPos(centerPos)
+        level.chunkSource.chunkMap.getPlayers(chunkPos, false).forEach { player ->
+            payload.send(player)
+        }
     }
 
     fun removeBarrier(level: ServerLevel, barrierId: UUID) {
@@ -100,7 +117,15 @@ object BarrierManager {
         return barriersByWorld[level]?.getBarriersInArea(area) ?: emptyList()
     }
 
+    fun getBarriers(): List<BarrierData> {
+        val result: MutableList<BarrierData> = mutableListOf()
+        barriersByWorld.forEach { barrier ->
+            result.addAll(barrier.value.getBarriers())
+        }
+        return result
+    }
+
     fun tickLevel(level: ServerLevel, currentTime: Long) {
-        barriersByWorld[level]?.tick(currentTime)
+        barriersByWorld[level]?.tick(currentTime, level)
     }
 }

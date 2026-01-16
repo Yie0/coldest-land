@@ -1,6 +1,11 @@
 package com.pycho.items
 
-import com.jcraft.jorbis.Block
+import Alert
+import com.pycho.components.ModComponents
+import com.pycho.components.TemporalRecord
+import com.pycho.network.AlertPayload
+import com.pycho.systems.barrier.BarrierData
+import com.pycho.systems.barrier.BarrierManager
 import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
@@ -9,15 +14,15 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
+import net.minecraft.world.effect.MobEffectInstance
+import net.minecraft.world.effect.MobEffects
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntitySpawnReason
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.MobCategory
-import net.minecraft.world.entity.MoverType
 import net.minecraft.world.entity.Relative
-import net.minecraft.world.entity.boss.wither.WitherBoss
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
@@ -123,13 +128,21 @@ class TemporalBladeItem(props: Item.Properties) : Item(props) {
             //going to modify the beacon interface instead of this in the future
             return level.getBlockEntity(pos.below(3)) is BeaconBlockEntity
         }
+
+        fun sendActivateText(player: ServerPlayer, component: Component){
+            val alert = Alert(
+                component,
+                4f,
+                2500,
+            )
+            AlertPayload(alert).send(player)
+        }
     }
     private fun getRecallTarget(player: ServerPlayer): TemporalRecord?{
        return player.getAttached(ModComponents.TEMPORAL_HISTORY)!!.lastOrNull()
     }
 
     var comboText: Component = Component.empty()
-
     override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResult {
         if (player.isCrouching) {
             player.playSound(SoundEvents.UI_BUTTON_CLICK.value(), 0.5f, 1.0f)
@@ -280,14 +293,9 @@ class TemporalBladeItem(props: Item.Properties) : Item(props) {
             )
             return
         }
+        sendActivateText(player as ServerPlayer, Component.literal("✦ Temporal Recall Activated! ✦").withStyle(ChatFormatting.LIGHT_PURPLE))
 
-        player.displayClientMessage(
-            Component.literal("✦ Temporal Recall Activated! ✦")
-                .withStyle(ChatFormatting.LIGHT_PURPLE),
-            true
-        )
-
-        val recallTarget = getRecallTarget(player as ServerPlayer) ?: return
+        val recallTarget = getRecallTarget(player) ?: return
 
         if(isFragmentAquired(stack, WITHER_FRAGMENT)) {
             enderAbilitySynergy(stack, level, player)
@@ -360,11 +368,7 @@ class TemporalBladeItem(props: Item.Properties) : Item(props) {
             return
         }
 
-        player.displayClientMessage(
-            Component.literal("☠ Necrotic Decay Activated! ☠")
-                .withStyle(ChatFormatting.DARK_GRAY),
-            true
-        )
+        sendActivateText(player as ServerPlayer, Component.literal("☠ Necrotic Decay Activated! ☠").withStyle(ChatFormatting.DARK_GRAY))
 
         // Apply Wither III to all enemies in 8-block radius
         // Heal wielder based on damage dealt
@@ -380,12 +384,43 @@ class TemporalBladeItem(props: Item.Properties) : Item(props) {
             )
             return
         }
+        sendActivateText(player as ServerPlayer,Component.literal("⊚ Tidal Barrier Created! ⊚").withColor(0x00AAAA))
 
-        player.displayClientMessage(
-            Component.literal("⊚ Tidal Barrier Activated! ⊚")
-                .withStyle(ChatFormatting.AQUA),
-            true
+        val lookVec = player.lookAngle
+        val spawnDistance = 3.0
+
+        val spawnPos = player.eyePosition.add(lookVec.scale(spawnDistance))
+
+        val barrier = BarrierData.create(
+            center = spawnPos,
+            ownerUUID = player.uuid,
+            creationTime = level.gameTime,
+            lifetime = 100,
+            height = 3.0,
+            width = 3.0,
+            depth = 0.25,
+            yaw = player.yRot,
+            pitch = player.xRot,
+            precision =  0.5
         )
+
+        BarrierManager.addBarrier(level as ServerLevel, barrier)
+
+        level.playSound(
+            null,
+            BlockPos(
+                spawnPos.x.roundToInt(),
+                spawnPos.y.roundToInt(),
+                spawnPos.z.roundToInt()
+            ),
+            SoundEvents.BUCKET_EMPTY, //This was a genius pull
+            player.soundSource,
+            1.0f,
+            0.8f
+        )
+
+        player.addEffect(MobEffectInstance(MobEffects.WATER_BREATHING, 45))
+
 
         // Create water barrier that absorbs damage and slows enemies
         // Custom render for the barrier is required plan is to make it 3 by 3 ocean vibes in a block right
@@ -404,11 +439,7 @@ class TemporalBladeItem(props: Item.Properties) : Item(props) {
             return
         }
 
-        player.displayClientMessage(
-            Component.literal("♫ Sonic Resonance Activated! ♫")
-                .withStyle(ChatFormatting.GREEN),
-            true
-        )
+        sendActivateText(player as ServerPlayer, Component.literal("♫ Sonic Resonance Activated! ♫").withStyle(ChatFormatting.GREEN))
         // Warden's sound beam
     }
 
@@ -422,7 +453,14 @@ class TemporalBladeItem(props: Item.Properties) : Item(props) {
         if (level.gameTime % 20 == 0L) {
             if (entity is ServerPlayer) {
                 val history = entity.getAttachedOrCreate(ModComponents.TEMPORAL_HISTORY)
-                history.addFirst(TemporalRecord(entity.position().x, entity.position().y, entity.position().z, entity.health))
+                history.addFirst(
+                    TemporalRecord(
+                        entity.position().x,
+                        entity.position().y,
+                        entity.position().z,
+                        entity.health
+                    )
+                )
                 if (history.size > 5) {
                     history.removeLast()
                 }

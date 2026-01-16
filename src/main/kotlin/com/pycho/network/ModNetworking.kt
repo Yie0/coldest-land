@@ -16,6 +16,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.entity.player.Player
+import net.minecraft.world.phys.Vec3
 
 object ModNetworking {
     val COMBO_INPUT_PACKET_ID = CustomPacketPayload.Type<ComboInputPayload>(ColdestLand.id("combo_input"))
@@ -68,6 +69,12 @@ data class AlertPayload(val alert: Alert) : CustomPacketPayload {
 
     fun sendAll(level: ServerLevel){
         level.players().forEach { player ->
+            ServerPlayNetworking.send(player, AlertPayload(alert))
+        }
+    }
+
+    fun send(players: Collection<ServerPlayer>){
+        players.forEach { player ->
             ServerPlayNetworking.send(player, AlertPayload(alert))
         }
     }
@@ -133,10 +140,15 @@ data class BarrierDataPayload(val barrier: BarrierData) : CustomPacketPayload {
             buf.writeDouble(barrier.centerX)
             buf.writeDouble(barrier.centerY)
             buf.writeDouble(barrier.centerZ)
-            buf.writeFloat(barrier.radius)
-            buf.writeFloat(barrier.height)
+            buf.writeDouble(barrier.width)
+            buf.writeDouble(barrier.height)
+            buf.writeDouble(barrier.depth)
+            buf.writeFloat(barrier.yaw)
+            buf.writeFloat(barrier.pitch)
+            buf.writeDouble(barrier.precision)
             buf.writeUUID(barrier.ownerUUID)
             buf.writeLong(barrier.creationTime)
+            buf.writeLong(barrier.lifetime)
         }
 
         private fun read(buf: RegistryFriendlyByteBuf): BarrierData {
@@ -144,28 +156,28 @@ data class BarrierDataPayload(val barrier: BarrierData) : CustomPacketPayload {
             val x = buf.readDouble()
             val y = buf.readDouble()
             val z = buf.readDouble()
-            val radius = buf.readFloat()
-            val height = buf.readFloat()
+            val width = buf.readDouble()
+            val height = buf.readDouble()
+            val depth = buf.readDouble()
+            val yaw = buf.readFloat()
+            val pitch = buf.readFloat()
+            val precision = buf.readDouble()
             val owner = buf.readUUID()
             val time = buf.readLong()
+            val lifetime = buf.readLong()
 
-            return BarrierData(
-                id = id,
-                centerX = x, centerY = y, centerZ = z,
-                radius = radius, height = height,
+            return BarrierData.create(
+                center = Vec3(x, y, z),
                 ownerUUID = owner,
                 creationTime = time,
-
-                boundingBox = net.minecraft.world.phys.AABB(
-                    x - radius, y, z - radius,
-                    x + radius, y + height, z + radius
-                ),
-                collisionShape = net.minecraft.world.phys.shapes.Shapes.create(
-                    net.minecraft.world.phys.AABB(
-                        x - radius, y, z - radius,
-                        x + radius, y + height, z + radius
-                    )
-                )
+                lifetime = lifetime,
+                width = width,
+                height = height,
+                depth = depth,
+                yaw = yaw,
+                pitch = pitch,
+                precision = precision
             )
         }
-    }}
+    }
+}
