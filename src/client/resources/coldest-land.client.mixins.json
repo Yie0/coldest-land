@@ -3,7 +3,8 @@
 	"package": "com.pycho.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
-      "GameRendererMixin"
+      "GameRendererMixin",
+      "ClientCollisionGetterMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
