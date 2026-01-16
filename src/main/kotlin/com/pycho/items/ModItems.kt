@@ -1,11 +1,11 @@
 package com.pycho.items
 
 import com.pycho.ColdestLand
+import com.pycho.components.ModComponents
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
-import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.CreativeModeTabs
@@ -15,7 +15,7 @@ import net.minecraft.world.item.ToolMaterial
 
 
 object ModItems {
-    val TEMPORAL_BLADE: Item = registerItem(
+    val TEMPORAL_BLADE: Item = register(
         name = "temporal_blade",
         factory = ::TemporalBladeItem,
         properties = Item.Properties()
@@ -33,28 +33,28 @@ object ModItems {
         group = CreativeModeTabs.COMBAT
     )
     object Fragments{
-        val ENDER: Item = registerItem(
+        val ENDER: Item = register(
             name = "ender_fragment",
             factory = ::TemporalFragmentItem,
             properties = Item.Properties()
                 .rarity(Rarity.EPIC),
             group = CreativeModeTabs.TOOLS_AND_UTILITIES
         )
-        val GUARDIAN: Item = registerItem(
+        val GUARDIAN: Item = register(
             name = "guardian_fragment",
             factory = ::TemporalFragmentItem,
             properties = Item.Properties()
                 .rarity(Rarity.EPIC),
             group = CreativeModeTabs.TOOLS_AND_UTILITIES
         )
-        val WARDEN: Item = registerItem(
+        val WARDEN: Item = register(
             name = "warden_fragment",
             factory = ::TemporalFragmentItem,
             properties = Item.Properties()
                 .rarity(Rarity.EPIC),
             group = CreativeModeTabs.TOOLS_AND_UTILITIES
         )
-        val WITHER: Item = registerItem(
+        val WITHER: Item = register(
             name = "wither_fragment",
             factory = ::TemporalFragmentItem,
             properties = Item.Properties()
@@ -63,13 +63,17 @@ object ModItems {
         )
     }
 
-    fun registerItem(name: String,factory: (Item.Properties) -> Item ,properties: Item.Properties, group: ResourceKey<CreativeModeTab>) : Item {
+    fun register(name: String, factory: (Item.Properties) -> Item, properties: Item.Properties, group: ResourceKey<CreativeModeTab>) : Item {
         val itemKey: ResourceKey<Item> = ResourceKey.create(Registries.ITEM, ColdestLand.id(name))
         val item: Item = Registry.register(BuiltInRegistries.ITEM, itemKey, factory(properties.setId(itemKey)))
         ItemGroupEvents.modifyEntriesEvent(group).register({ entries ->
             entries.accept(item)
         });
         return item
+    }
+
+    fun setup(){
+        Fragments
     }
 }
 
