@@ -1,8 +1,9 @@
 {
 	"required": true,
-	"package": "com.pycho.mixin.client",
+	"package": "com.pycho.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
+      "GameRendererMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
