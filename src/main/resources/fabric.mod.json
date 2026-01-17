@@ -1,6 +1,6 @@
 {
 	"schemaVersion": 1,
-	"id": "coldest-land",
+	"id": "coldestland",
 	"version": "${version}",
 	"name": "Coldest Land",
 	"description": "This is an example description! Tell everyone what your mod is about!",
@@ -12,7 +12,7 @@
 		"sources": "https://github.com/FabricMC/fabric-example-mod"
 	},
 	"license": "CC0-1.0",
-	"icon": "assets/coldest-land/icon.png",
+	"icon": "assets/coldestland/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
@@ -29,11 +29,7 @@
 		]
 	},
 	"mixins": [
-		"coldest-land.mixins.json",
-		{
-			"config": "coldest-land.client.mixins.json",
-			"environment": "client"
-		}
+		"coldestland.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.18.2",
